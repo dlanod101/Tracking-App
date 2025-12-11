@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - TrackFlow{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Header -->
+        <div class="auth-header">
+            <a href="{% url 'home' %}" class="navbar-brand" style="text-decoration: none; font-size: 2rem;">📦
+                TrackFlow</a>
+            <h2 class="auth-title">Create Account</h2>
+            <p class="auth-subtitle">Start tracking your orders today</p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+            {% if message.tags == 'error' %}❌{% else %}✅{% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Register Form -->
+        <form method="POST" class="auth-form" id="registerForm">
+            {% csrf_token %}
+
+            <!-- User Type Selection -->
+            <div class="form-group">
+                <label class="form-label">Register As *</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                    <label class="user-type-option" id="user-option">
+                        <input type="radio" name="user_type" value="user" checked onchange="toggleDispatchFields()">
+                        <div class="user-type-content">
+                            <span style="font-size: 2rem;">👤</span>
+                            <span style="font-weight: 600;">Customer</span>
+                            <small style="color: var(--text-muted); font-size: 0.75rem;">Order & Track</small>
+                        </div>
+                    </label>
+                    <label class="user-type-option" id="dispatch-option">
+                        <input type="radio" name="user_type" value="dispatch" onchange="toggleDispatchFields()">
+                        <div class="user-type-content">
+                            <span style="font-size: 2rem;">🏍️</span>
+                            <span style="font-weight: 600;">Dispatch Rider</span>
+                            <small style="color: var(--text-muted); font-size: 0.75rem;">Deliver Orders</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" name="username" class="form-input"
+                    placeholder="Choose a unique username" required autocomplete="username" minlength="3">
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="your.email@example.com"
+                    required autocomplete="email">
+            </div>
+
+            <!-- Dispatch-specific fields (hidden by default) -->
+            <div id="dispatch-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="phone_number" class="form-label">Phone Number *</label>
+                    <input type="tel" id="phone_number" name="phone_number" class="form-input"
+                        placeholder="+234 XXX XXX XXXX">
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicle_type" class="form-label">Vehicle Type *</label>
+                    <select id="vehicle_type" name="vehicle_type" class="form-input">
+                        <option value="">Select vehicle type</option>
+                        <option value="motorcycle">🏍️ Motorcycle</option>
+                        <option value="bicycle">🚲 Bicycle</option>
+                        <option value="car">🚗 Car</option>
+                        <option value="van">🚐 Van</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="license_number" class="form-label">License Number (Optional)</label>
+                    <input type="text" id="license_number" name="license_number" class="form-input"
+                        placeholder="DL123456">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-input"
+                    placeholder="Create a strong password" required autocomplete="new-password" minlength="8">
+                <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                    At least 8 characters
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="password2" class="form-label">Confirm Password</label>
+                <input type="password" id="password2" name="password2" class="form-input"
+                    placeholder="Re-enter your password" required autocomplete="new-password" minlength="8">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: flex; align-items: start; gap: 0.75rem; cursor: pointer;">
+                    <input type="checkbox" name="terms" required style="width: auto; margin-top: 0.25rem;">
+                    <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                        I agree to the <a href="#" style="color: var(--primary); text-decoration: none;">Terms of
+                            Service</a>
+                        and <a href="#" style="color: var(--primary); text-decoration: none;">Privacy Policy</a>
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                🚀 Create My Account
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- Decorative Elements & Styles -->
+<style>
+    .auth-container {
+        position: relative;
+    }
+
+    .auth-container::before {
+        content: '';
+        position: absolute;
+        top: 15%;
+        right: 15%;
+        width: 350px;
+        height: 350px;
+        background: radial-gradient(circle, rgba(245, 87, 108, 0.12) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(70px);
+        animation: pulse 8s ease-in-out infinite;
+        z-index: -1;
+    }
+
+    .auth-container::after {
+        content: '';
+        position: absolute;
+        bottom: 15%;
+        left: 15%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(70px);
+        animation: pulse 10s ease-in-out infinite reverse;
+        z-index: -1;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1) translateY(0);
+            opacity: 0.8;
+        }
+
+        50% {
+            transform: scale(1.15) translateY(-30px);
+            opacity: 1;
+        }
+    }
+
+    /* User Type Selection */
+    .user-type-option {
+        cursor: pointer;
+        position: relative;
+        display: block;
+    }
+
+    .user-type-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .user-type-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-card);
+        transition: var(--transition);
+        text-align: center;
+    }
+
+    .user-type-option input[type="radio"]:checked+.user-type-content {
+        border-color: var(--primary);
+        background: rgba(102, 126, 234, 0.1);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .user-type-option:hover .user-type-content {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    /* Password strength indicator */
+    #password {
+        border-bottom: 2px solid transparent;
+        transition: var(--transition);
+    }
+
+    #password:focus:valid {
+        border-bottom-color: var(--success);
+    }
+
+    /* Dispatch fields animation */
+    #dispatch-fields {
+        animation: fadeInDown 0.3s ease-out;
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    // Toggle dispatch-specific fields
+    function toggleDispatchFields() {
+        const userType = document.querySelector('input[name="user_type"]:checked').value;
+        const dispatchFields = document.getElementById('dispatch-fields');
+        const phoneInput = document.getElementById('phone_number');
+        const vehicleInput = document.getElementById('vehicle_type');
+
+        if (userType === 'dispatch') {
+            dispatchFields.style.display = 'block';
+            phoneInput.required = true;
+            vehicleInput.required = true;
+        } else {
+            dispatchFields.style.display = 'none';
+            phoneInput.required = false;
+            vehicleInput.required = false;
+        }
+    }
+
+    // Password matching validation
+    document.addEventListener('DOMContentLoaded', function () {
+        const password = document.getElementById('password');
+        const password2 = document.getElementById('password2');
+
+        password2.addEventListener('input', function () {
+            if (password.value !== password2.value) {
+                password2.setCustomValidity('Passwords do not match');
+            } else {
+                password2.setCustomValidity('');
+            }
+        });
+
+        password.addEventListener('input', function () {
+            if (password.value !== password2.value && password2.value !== '') {
+                password2.setCustomValidity('Passwords do not match');
+            } else {
+                password2.setCustomValidity('');
+            }
+        });
+    });
+</script>
+{% endblock %}

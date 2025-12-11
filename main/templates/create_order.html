@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Order - TrackFlow{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS for OpenStreetMap -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .map-container {
+        height: 300px;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-top: 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .location-section {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: rgba(102, 126, 234, 0.05);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        border-radius: var(--radius-lg);
+    }
+
+    .location-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        color: var(--primary);
+    }
+
+    .location-fields {
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container navbar-container">
+        <a href="{% url 'home' %}" class="navbar-brand">📦 TrackFlow</a>
+        <ul class="navbar-menu">
+            <li><a href="{% url 'dashboard' %}" class="navbar-link">Dashboard</a></li>
+            <li><a href="{% url 'create_order' %}" class="navbar-link">Create Order</a></li>
+            <li><a href="{% url 'logout' %}" class="navbar-link">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Create Order Content -->
+<div class="dashboard">
+    <div class="container" style="max-width: 900px;">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Create New Order 📝</h1>
+            <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                Fill in the details and locations for your tracking order
+            </p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div style="margin-bottom: 2rem;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                {% if message.tags == 'error' %}❌{% else %}✅{% endif %}
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Order Form -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <form method="POST" id="orderForm">
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    📋 Basic Information
+                </h3>
+
+                <div class="form-group">
+                    <label for="name" class="form-label">Order Name *</label>
+                    <input type="text" id="name" name="name" class="form-input"
+                        placeholder="e.g., Electronics Package, Documents" required minlength="3" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="description" class="form-label">Order Description *</label>
+                    <textarea id="description" name="description" class="form-input"
+                        placeholder="Provide detailed information about your order..." required minlength="10" rows="4"
+                        style="resize: vertical; min-height: 100px;"></textarea>
+                </div>
+
+                <!-- Pickup Location -->
+                <div class="location-section">
+                    <div class="location-toggle" onclick="toggleSection('pickup')">
+                        <span id="pickup-toggle-icon">▶</span>
+                        <h3 style="margin: 0;">📍 Pickup Location (Optional)</h3>
+                    </div>
+                    <div id="pickup-section" class="location-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="pickup_address" class="form-label">Pickup Address</label>
+                            <input type="text" id="pickup_address" name="pickup_address" class="form-input"
+                                placeholder="Enter pickup address or click on map">
+                        </div>
+
+                        <div class="map-container" id="pickup-map"></div>
+
+                        <input type="hidden" id="pickup_latitude" name="pickup_latitude">
+                        <input type="hidden" id="pickup_longitude" name="pickup_longitude">
+
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                            Click on the map to set pickup location
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Delivery Location -->
+                <div class="location-section">
+                    <div class="location-toggle" onclick="toggleSection('delivery')">
+                        <span id="delivery-toggle-icon">▶</span>
+                        <h3 style="margin: 0;">🎯 Delivery Location (Optional)</h3>
+                    </div>
+                    <div id="delivery-section" class="location-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="delivery_address" class="form-label">Delivery Address</label>
+                            <input type="text" id="delivery_address" name="delivery_address" class="form-input"
+                                placeholder="Enter delivery address or click on map">
+                        </div>
+
+                        <div class="map-container" id="delivery-map"></div>
+
+                        <input type="hidden" id="delivery_latitude" name="delivery_latitude">
+                        <input type="hidden" id="delivery_longitude" name="delivery_longitude">
+
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                            Click on the map to set delivery location
+                        </small>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; min-width: 200px;">
+                        ➕ Create Order
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary"
+                        style="flex: 1; min-width: 200px; text-align: center;">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<!-- Footer -->
+<footer
+    style="border-top: 1px solid var(--border-color); padding: 2rem 0; margin-top: 4rem; text-align: center; color: var(--text-muted);">
+    <div class="container">
+        <p>&copy; 2025 TrackFlow. All rights reserved.</p>
+    </div>
+</footer>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS for OpenStreetMap -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    let pickupMap, deliveryMap;
+    let pickupMarker, deliveryMarker;
+
+    // Toggle location sections
+    function toggleSection(type) {
+        const section = document.getElementById(type + '-section');
+        const icon = document.getElementById(type + '-toggle-icon');
+
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            icon.textContent = '▼';
+
+            // Initialize map when opened
+            setTimeout(() => {
+                if (type === 'pickup' && !pickupMap) {
+                    initPickupMap();
+                } else if (type === 'delivery' && !deliveryMap) {
+                    initDeliveryMap();
+                }
+            }, 100);
+        } else {
+            section.style.display = 'none';
+            icon.textContent = '▶';
+        }
+    }
+
+    // Initialize Pickup Map
+    function initPickupMap() {
+        pickupMap = L.map('pickup-map').setView([51.505, -0.09], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(pickupMap);
+
+        pickupMap.on('click', function (e) {
+            setPickupLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Try to get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                pickupMap.setView([lat, lng], 13);
+            });
+        }
+    }
+
+    // Initialize Delivery Map
+    function initDeliveryMap() {
+        deliveryMap = L.map('delivery-map').setView([51.505, -0.09], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(deliveryMap);
+
+        deliveryMap.on('click', function (e) {
+            setDeliveryLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Try to get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                deliveryMap.setView([lat, lng], 13);
+            });
+        }
+    }
+
+    // Set Pickup Location
+    function setPickupLocation(lat, lng) {
+        document.getElementById('pickup_latitude').value = lat;
+        document.getElementById('pickup_longitude').value = lng;
+
+        if (pickupMarker) {
+            pickupMap.removeLayer(pickupMarker);
+        }
+
+        pickupMarker = L.marker([lat, lng]).addTo(pickupMap);
+        pickupMarker.bindPopup('Pickup Location').openPopup();
+
+        // Reverse geocode to get address
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.display_name) {
+                    document.getElementById('pickup_address').value = data.display_name;
+                }
+            });
+    }
+
+    // Set Delivery Location
+    function setDeliveryLocation(lat, lng) {
+        document.getElementById('delivery_latitude').value = lat;
+        document.getElementById('delivery_longitude').value = lng;
+
+        if (deliveryMarker) {
+            deliveryMap.removeLayer(deliveryMarker);
+        }
+
+        deliveryMarker = L.marker([lat, lng]).addTo(deliveryMap);
+        deliveryMarker.bindPopup('Delivery Location').openPopup();
+
+        // Reverse geocode to get address
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.display_name) {
+                    document.getElementById('delivery_address').value = data.display_name;
+                }
+            });
+    }
+
+    // Search address and update map
+    document.getElementById('pickup_address').addEventListener('change', function () {
+        const address = this.value;
+        if (address) {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        if (pickupMap) {
+                            pickupMap.setView([lat, lng], 15);
+                            setPickupLocation(lat, lng);
+                        }
+                    }
+                });
+        }
+    });
+
+    document.getElementById('delivery_address').addEventListener('change', function () {
+        const address = this.value;
+        if (address) {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        if (deliveryMap) {
+                            deliveryMap.setView([lat, lng], 15);
+                            setDeliveryLocation(lat, lng);
+                        }
+                    }
+                });
+        }
+    });
+</script>
+{% endblock %}

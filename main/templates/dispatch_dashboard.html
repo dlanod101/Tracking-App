@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Dispatch Dashboard - TrackFlow{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container navbar-container">
+        <a href="{% url 'home' %}" class="navbar-brand">🏍️ TrackFlow Dispatch</a>
+        <ul class="navbar-menu">
+            <li><a href="{% url 'dispatch_dashboard' %}" class="navbar-link">Dashboard</a></li>
+            <li><a href="{% url 'logout' %}" class="navbar-link">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Dashboard Content -->
+<div class="dashboard">
+    <div class="container">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Welcome, {{ user.username }}! 🏍️</h1>
+            <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                Dispatch Rider Dashboard
+            </p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div style="margin-bottom: 2rem;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                {% if message.tags == 'error' %}❌{% else %}✅{% endif %}
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Statistics Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_deliveries }}</div>
+                <div class="stat-label">Total Deliveries</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value"
+                    style="background: var(--warning-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ stats.active_orders }}
+                </div>
+                <div class="stat-label">Active Orders</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value"
+                    style="background: var(--success-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ stats.completed_today }}
+                </div>
+                <div class="stat-label">Completed Today</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value"
+                    style="background: var(--secondary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ stats.rating }}
+                </div>
+                <div class="stat-label">Rating</div>
+            </div>
+        </div>
+
+        <!-- Available Orders -->
+        <div class="orders-section" style="margin-top: 3rem;">
+            <h2 class="section-title">Available Orders</h2>
+
+            {% if available_orders %}
+            <div style="display: grid; gap: 1rem;">
+                {% for order in available_orders %}
+                <div class="card"
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3 style="margin-bottom: 0.5rem;">Order #{{ order.id }} - {{ order.name }}</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">{{
+                            order.description|truncatewords:15 }}</p>
+                        <div
+                            style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.875rem; color: var(--text-muted);">
+                            {% if order.pickup_address %}
+                            <span>📍 Pickup: {{ order.pickup_address|truncatechars:30 }}</span>
+                            {% endif %}
+                            {% if order.delivery_address %}
+                            <span>🎯 Delivery: {{ order.delivery_address|truncatechars:30 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <a href="{% url 'accept_order' order.id %}" class="btn btn-primary"
+                            onclick="return confirm('Accept this order?')">
+                            ✅ Accept Order
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card" style="text-align: center; padding: 3rem 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📭</div>
+                <h3>No Available Orders</h3>
+                <p style="color: var(--text-secondary);">Check back later for new delivery opportunities</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- My Active/Assigned Orders -->
+        <div class="orders-section" style="margin-top: 3rem;">
+            <h2 class="section-title">My Orders</h2>
+
+            {% if assigned_orders %}
+            <div class="orders-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Accepted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in assigned_orders %}
+                        <tr>
+                            <td><strong style="color: var(--primary);">#{{ order.id }}</strong></td>
+                            <td>{{ order.name }}</td>
+                            <td>
+                                {% if order.status == 'dispatched' %}
+                                <span class="badge badge-dispatched">🚚 In Progress</span>
+                                {% elif order.status == 'delivered' %}
+                                <span class="badge badge-delivered">✅ Delivered</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="color: var(--text-muted); font-size: 0.875rem;">
+                                    {{ order.accepted_at|date:"M d, H:i" }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if order.status == 'dispatched' %}
+                                <a href="{% url 'dispatch_tracking' order.id %}" class="btn btn-secondary"
+                                    style="padding: 0.5rem 1rem; font-size: 0.875rem; text-decoration: none;">
+                                    📍 Start Delivery
+                                </a>
+                                {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.875rem;">Completed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card" style="text-align: center; padding: 3rem 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🚚</div>
+                <h3>No Assigned Orders Yet</h3>
+                <p style="color: var(--text-secondary);">Accept an order from the available orders above to get started
+                </p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Info -->
+        <div class="card"
+            style="margin-top: 3rem; background: rgba(102, 126, 234, 0.1); border-color: rgba(102, 126, 234, 0.3);">
+            <div style="display: flex; gap: 1rem; align-items: start;">
+                <div style="font-size: 2rem;">ℹ️</div>
+                <div>
+                    <h4 style="margin-bottom: 0.5rem;">Dispatch Rider Info</h4>
+                    <ul style="color: var(--text-secondary); margin: 0; padding-left: 1.25rem; font-size: 0.875rem;">
+                        <li>Vehicle: {{ profile.vehicle_type|title }}</li>
+                        {% if profile.license_number %}
+                        <li>License: {{ profile.license_number }}</li>
+                        {% endif %}
+                        <li>Phone: {{ profile.phone_number|default:"Not provided" }}</li>
+                        <li>Status: {% if profile.is_available %}Available{% else %}Offline{% endif %}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Footer -->
+<footer
+    style="border-top: 1px solid var(--border-color); padding: 2rem 0; margin-top: 4rem; text-align: center; color: var(--text-muted);">
+    <div class="container">
+        <p>&copy; 2025 TrackFlow. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>
+    // Add count-up animation for statistics
+    document.addEventListener('DOMContentLoaded', function () {
+        const statValues = document.querySelectorAll('.stat-value');
+
+        statValues.forEach(function (stat) {
+            const text = stat.textContent.trim();
+            const target = parseFloat(text);
+
+            if (!isNaN(target)) {
+                let current = 0;
+                const increment = target / 30;
+                const duration = 1000;
+                const stepTime = duration / 30;
+
+                const timer = setInterval(function () {
+                    current += increment;
+                    if (current >= target) {
+                        stat.textContent = text.includes('.') ? target.toFixed(2) : Math.floor(target);
+                        clearInterval(timer);
+                    } else {
+                        stat.textContent = text.includes('.') ? current.toFixed(2) : Math.floor(current);
+                    }
+                }, stepTime);
+            }
+        });
+    });
+</script>
+
+{% endblock %}

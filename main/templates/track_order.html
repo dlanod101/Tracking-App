@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+
+{% block title %}Track Order #{{ order.id }} - TrackFlow{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS for OpenStreetMap -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #tracking-map {
+        height: 500px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .tracking-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-card {
+        background: var(--bg-card);
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+    }
+
+    .info-label {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-value {
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .location-history {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .history-item {
+        padding: 1rem;
+        border-left: 3px solid var(--primary);
+        margin-bottom: 1rem;
+        background: var(--bg-card);
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    }
+
+    .history-time {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(0, 242, 254, 0.1);
+        border: 1px solid rgba(0, 242, 254, 0.3);
+        border-radius: 50px;
+        font-size: 0.875rem;
+        color: var(--success);
+    }
+
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--success);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.3;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container navbar-container">
+        <a href="{% url 'home' %}" class="navbar-brand">📦 TrackFlow</a>
+        <ul class="navbar-menu">
+            <li><a href="{% url 'dashboard' %}" class="navbar-link">Dashboard</a></li>
+            <li><a href="{% url 'create_order' %}" class="navbar-link">Create Order</a></li>
+            <li><a href="{% url 'logout' %}" class="navbar-link">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Tracking Content -->
+<div class="dashboard">
+    <div class="container">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1>Track Order #{{ order.id }} 📍</h1>
+                    <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                        {{ order.name }}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span class="live-indicator">
+                        <span class="live-dot"></span>
+                        Live Tracking
+                    </span>
+                    {% if order.status == 'pending' %}
+                    <span class="badge badge-pending">⏳ Pending</span>
+                    {% elif order.status == 'dispatched' %}
+                    <span class="badge badge-dispatched">🚚 Dispatched</span>
+                    {% elif order.status == 'delivered' %}
+                    <span class="badge badge-delivered">✅ Delivered</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tracking Info -->
+        <div class="tracking-info">
+            <div class="info-card">
+                <div class="info-label">Pickup Location</div>
+                <div class="info-value">
+                    {% if order.pickup_address %}
+                    📍 {{ order.pickup_address|truncatechars:40 }}
+                    {% else %}
+                    Not set
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="info-label">Delivery Location</div>
+                <div class="info-value">
+                    {% if order.delivery_address %}
+                    🎯 {{ order.delivery_address|truncatechars:40 }}
+                    {% else %}
+                    Not set
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="info-label">Last Update</div>
+                <div class="info-value">
+                    {% if order.last_location_update %}
+                    🕐 {{ order.last_location_update|date:"M d, H:i" }}
+                    {% else %}
+                    No updates yet
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Real-Time Location Map</h3>
+            <div id="tracking-map"></div>
+        </div>
+
+        <!-- Location History -->
+        {% if location_history %}
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">Location History</h3>
+            <div class="location-history">
+                {% for update in location_history %}
+                <div class="history-item">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <strong>Location Update</strong>
+                            <p class="history-time">{{ update.timestamp|date:"M d, Y - H:i:s" }}</p>
+                            {% if update.notes %}
+                            <p style="color: var(--text-secondary); margin-top: 0.5rem;">{{ update.notes }}</p>
+                            {% endif %}
+                        </div>
+                        <div style="text-align: right; color: var(--text-muted); font-size: 0.875rem;">
+                            {{ update.latitude|floatformat:6 }}, {{ update.longitude|floatformat:6 }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Back Button -->
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                ← Back to Dashboard
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-- Footer -->
+<footer
+    style="border-top: 1px solid var(--border-color); padding: 2rem 0; margin-top: 4rem; text-align: center; color: var(--text-muted);">
+    <div class="container">
+        <p>&copy; 2025 TrackFlow. All rights reserved.</p>
+    </div>
+</footer>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS for OpenStreetMap -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const orderId = {{ order.id }};
+    let trackingMap;
+    let pickupMarker, deliveryMarker, currentMarker;
+    let routeLine;
+
+    // Initialize Map
+    function initMap() {
+        // Default center (will be updated based on order locations)
+        trackingMap = L.map('tracking-map').setView([51.505, -0.09], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(trackingMap);
+
+        // Order data
+        const pickupLat = {{ order.pickup_latitude|default:"null" }};
+        const pickupLng = {{ order.pickup_longitude|default:"null" }};
+        const deliveryLat = {{ order.delivery_latitude|default:"null" }};
+        const deliveryLng = {{ order.delivery_longitude|default:"null" }};
+        const currentLat = {{ order.current_latitude|default:"null" }};
+        const currentLng = {{ order.current_longitude|default:"null" }};
+
+    const markers = [];
+
+    // Add Pickup Marker
+    if (pickupLat && pickupLng) {
+        const pickupIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        pickupMarker = L.marker([pickupLat, pickupLng], { icon: pickupIcon }).addTo(trackingMap);
+        pickupMarker.bindPopup('<b>📍 Pickup Location</b><br>{{ order.pickup_address|escapejs }}');
+        markers.push([pickupLat, pickupLng]);
+    }
+
+    // Add Delivery Marker
+    if (deliveryLat && deliveryLng) {
+        const deliveryIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        deliveryMarker = L.marker([deliveryLat, deliveryLng], { icon: deliveryIcon }).addTo(trackingMap);
+        deliveryMarker.bindPopup('<b>🎯 Delivery Location</b><br>{{ order.delivery_address|escapejs }}');
+        markers.push([deliveryLat, deliveryLng]);
+    }
+
+    // Add Current Location Marker
+    if (currentLat && currentLng) {
+        const currentIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        currentMarker = L.marker([currentLat, currentLng], { icon: currentIcon }).addTo(trackingMap);
+        currentMarker.bindPopup('<b>🚚 Current Location</b>').openPopup();
+        markers.push([currentLat, currentLng]);
+
+        // Draw route line if we have pickup and current
+        if (pickupLat && pickupLng) {
+            const routePoints = [
+                [pickupLat, pickupLng],
+                [currentLat, currentLng]
+            ];
+
+            if (deliveryLat && deliveryLng) {
+                routePoints.push([deliveryLat, deliveryLng]);
+            }
+
+            routeLine = L.polyline(routePoints, {
+                color: '#667eea',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 10'
+            }).addTo(trackingMap);
+        }
+    }
+
+    // Fit map to show all markers
+    if (markers.length > 0) {
+        const bounds = L.latLngBounds(markers);
+        trackingMap.fitBounds(bounds, { padding: [50, 50] });
+    }
+    }
+
+    // Update location in real-time
+    function updateLocation() {
+        fetch(`/api/get-location/${orderId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.current) {
+                    const lat = data.current.latitude;
+                    const lng = data.current.longitude;
+
+                    if (lat && lng) {
+                        // Update current marker
+                        if (currentMarker) {
+                            currentMarker.setLatLng([lat, lng]);
+                        } else {
+                            const currentIcon = L.icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41],
+                                popupAnchor: [1, -34],
+                                shadowSize: [41, 41]
+                            });
+
+                            currentMarker = L.marker([lat, lng], { icon: currentIcon }).addTo(trackingMap);
+                            currentMarker.bindPopup('<b>🚚 Current Location</b>');
+                        }
+
+                        // Update route line
+                        if (routeLine) {
+                            trackingMap.removeLayer(routeLine);
+                        }
+
+                        const routePoints = [];
+                        if (data.pickup) {
+                            routePoints.push([data.pickup.latitude, data.pickup.longitude]);
+                        }
+                        routePoints.push([lat, lng]);
+                        if (data.delivery) {
+                            routePoints.push([data.delivery.latitude, data.delivery.longitude]);
+                        }
+
+                        if (routePoints.length > 1) {
+                            routeLine = L.polyline(routePoints, {
+                                color: '#667eea',
+                                weight: 3,
+                                opacity: 0.7,
+                                dashArray: '10, 10'
+                            }).addTo(trackingMap);
+                        }
+                    }
+                }
+            });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        initMap();
+
+        // Update location every 10 seconds
+        setInterval(updateLocation, 10000);
+    });
+</script>
+{% endblock %}

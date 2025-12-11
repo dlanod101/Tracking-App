@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - TrackFlow{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container navbar-container">
+        <a href="{% url 'home' %}" class="navbar-brand">📦 TrackFlow</a>
+        <ul class="navbar-menu">
+            <li><a href="{% url 'dashboard' %}" class="navbar-link">Dashboard</a></li>
+            <li><a href="{% url 'create_order' %}" class="navbar-link">Create Order</a></li>
+            <li><a href="{% url 'logout' %}" class="navbar-link">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Dashboard Content -->
+<div class="dashboard">
+    <div class="container">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Welcome back, {{ user.username }}! 👋</h1>
+            <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                Here's an overview of your orders and deliveries
+            </p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div style="margin-bottom: 2rem;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                {% if message.tags == 'error' %}❌{% else %}✅{% endif %}
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Statistics Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_orders }}</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value"
+                    style="background: var(--warning-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ stats.pending }}
+                </div>
+                <div class="stat-label">Pending Orders</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value"
+                    style="background: var(--secondary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ stats.dispatched }}
+                </div>
+                <div class="stat-label">In Transit</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value"
+                    style="background: var(--success-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ stats.delivered }}
+                </div>
+                <div class="stat-label">Delivered</div>
+            </div>
+        </div>
+
+        <!-- Orders Section -->
+        <div class="orders-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 class="section-title" style="margin-bottom: 0;">Recent Orders</h2>
+                <a href="{% url 'create_order' %}" class="btn btn-primary">
+                    ➕ New Order
+                </a>
+            </div>
+
+            {% if orders %}
+            <div class="orders-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Date Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <strong style="color: var(--primary);">#{{ order.id }}</strong>
+                            </td>
+                            <td>{{ order.name }}</td>
+                            <td>
+                                <span style="color: var(--text-secondary);">
+                                    {{ order.description|truncatewords:8 }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge badge-pending">⏳ Pending</span>
+                                {% elif order.status == 'dispatched' %}
+                                <span class="badge badge-dispatched">🚚 Dispatched</span>
+                                {% elif order.status == 'delivered' %}
+                                <span class="badge badge-delivered">✅ Delivered</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="color: var(--text-muted); font-size: 0.875rem;">
+                                    {{ order.date_created|date:"M d, Y - H:i" }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'track_order' order.id %}" class="btn btn-secondary"
+                                    style="padding: 0.5rem 1rem; font-size: 0.875rem; text-decoration: none;">
+                                    📍 Track
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="card" style="text-align: center; padding: 4rem 2rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📭</div>
+                <h3 style="margin-bottom: 0.5rem;">No Orders Yet</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                    You haven't created any orders yet. Start by creating your first order!
+                </p>
+                <a href="{% url 'create_order' %}" class="btn btn-primary">
+                    ➕ Create Your First Order
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="margin-top: 3rem;">
+            <h3 style="margin-bottom: 1.5rem;">Quick Actions</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <a href="{% url 'create_order' %}" class="card glass-hover"
+                    style="border: none; cursor: pointer; text-align: left; text-decoration: none; color: inherit;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">➕</div>
+                    <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">New Order</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0;">
+                        Create a new tracking order
+                    </p>
+                </a>
+
+                <button class="card glass-hover" style="border: none; cursor: pointer; text-align: left;"
+                    onclick="alert('Search feature coming soon!')">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+                    <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Search Orders</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0;">
+                        Find specific orders quickly
+                    </p>
+                </button>
+
+                <button class="card glass-hover" style="border: none; cursor: pointer; text-align: left;"
+                    onclick="alert('Download report feature coming soon!')">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                    <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Download Report</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0;">
+                        Export your order history
+                    </p>
+                </button>
+
+                <button class="card glass-hover" style="border: none; cursor: pointer; text-align: left;"
+                    onclick="alert('Settings feature coming soon!')">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚙️</div>
+                    <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Settings</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0;">
+                        Manage your preferences
+                    </p>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Footer -->
+<footer
+    style="border-top: 1px solid var(--border-color); padding: 2rem 0; margin-top: 4rem; text-align: center; color: var(--text-muted);">
+    <div class="container">
+        <p>&copy; 2025 TrackFlow. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>
+    // Add count-up animation for statistics
+    document.addEventListener('DOMContentLoaded', function () {
+        const statValues = document.querySelectorAll('.stat-value');
+
+        statValues.forEach(function (stat) {
+            const target = parseInt(stat.textContent);
+            let current = 0;
+            const increment = target / 30;
+            const duration = 1000;
+            const stepTime = duration / 30;
+
+            const timer = setInterval(function () {
+                current += increment;
+                if (current >= target) {
+                    stat.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    stat.textContent = Math.floor(current);
+                }
+            }, stepTime);
+        });
+    });
+</script>
+
+{% endblock %}

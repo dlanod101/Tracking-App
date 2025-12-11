@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}TrackFlow - Track Your Orders in Real-Time{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container navbar-container">
+        <a href="{% url 'home' %}" class="navbar-brand">📦 TrackFlow</a>
+        <ul class="navbar-menu">
+            {% if user.is_authenticated %}
+            <li><a href="{% url 'dashboard' %}" class="navbar-link">Dashboard</a></li>
+            <li><a href="{% url 'logout' %}" class="navbar-link">Logout</a></li>
+            {% else %}
+            <li><a href="{% url 'login' %}" class="navbar-link">Login</a></li>
+            <li><a href="{% url 'register' %}" class="btn btn-primary" style="padding: 0.5rem 1.5rem;">Get Started</a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Track Your Orders<br>In Real-Time</h1>
+        <p class="hero-subtitle">
+            Experience seamless order tracking with our modern, intuitive platform.
+            Stay updated on every step of your delivery journey with real-time notifications.
+        </p>
+        <div class="hero-buttons">
+            <a href="{% url 'register' %}" class="btn btn-primary">
+                <span>🚀</span> Get Started Free
+            </a>
+            <a href="#features" class="btn btn-secondary">
+                <span>✨</span> Learn More
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="container" style="padding: 4rem 1.5rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h2 style="margin-bottom: 1rem;">Why Choose TrackFlow?</h2>
+        <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+            We provide the most advanced tracking solutions with features designed to keep you informed every step of
+            the way.
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+        <!-- Feature 1 -->
+        <div class="card glass-hover">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⚡</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Real-Time Updates</h3>
+            <p style="color: var(--text-secondary);">
+                Get instant notifications about your order status. Never miss an update with our real-time tracking
+                system.
+            </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="card glass-hover">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Secure & Private</h3>
+            <p style="color: var(--text-secondary);">
+                Your data is encrypted and protected. We prioritize your privacy and security above all else.
+            </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="card glass-hover">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Mobile Responsive</h3>
+            <p style="color: var(--text-secondary);">
+                Track your orders on any device. Our platform is fully optimized for mobile, tablet, and desktop.
+            </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="card glass-hover">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Detailed Analytics</h3>
+            <p style="color: var(--text-secondary);">
+                View comprehensive statistics about your orders. Make informed decisions with our analytics dashboard.
+            </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="card glass-hover">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🌍</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Global Coverage</h3>
+            <p style="color: var(--text-secondary);">
+                Track orders from anywhere in the world. We support international shipping and deliveries.
+            </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="card glass-hover">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem;">24/7 Support</h3>
+            <p style="color: var(--text-secondary);">
+                Our dedicated support team is always here to help. Get assistance whenever you need it.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section style="padding: 6rem 1.5rem; text-align: center;">
+    <div class="container" style="max-width: 700px;">
+        <h2 style="margin-bottom: 1.5rem;">Ready to Start Tracking?</h2>
+        <p style="color: var(--text-secondary); font-size: 1.125rem; margin-bottom: 2rem;">
+            Join thousands of users who trust TrackFlow for their order tracking needs.
+            Get started in less than 60 seconds.
+        </p>
+        <a href="{% url 'register' %}" class="btn btn-primary" style="font-size: 1.125rem; padding: 1rem 3rem;">
+            Create Free Account
+        </a>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer
+    style="border-top: 1px solid var(--border-color); padding: 2rem 0; text-align: center; color: var(--text-muted);">
+    <div class="container">
+        <p>&copy; 2025 TrackFlow. All rights reserved.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+            Made with ❤️ for better tracking experiences
+        </p>
+    </div>
+</footer>
+
+{% endblock %}

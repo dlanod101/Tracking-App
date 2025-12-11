@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block title %}Delivery Tracking - Order #{{ order.id }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #delivery-map {
+        height: 500px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .gps-button {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .gps-button.active {
+        background: var(--success-gradient);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.8;
+        }
+    }
+
+    .status-badge-large {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: rgba(0, 242, 254, 0.1);
+        border: 1px solid rgba(0, 242, 254, 0.3);
+        border-radius: 50px;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container navbar-container">
+        <a href="{% url 'dispatch_dashboard' %}" class="navbar-brand">🏍️ TrackFlow Dispatch</a>
+        <ul class="navbar-menu">
+            <li><a href="{% url 'dispatch_dashboard' %}" class="navbar-link">Dashboard</a></li>
+            <li><a href="{% url 'logout' %}" class="navbar-link">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Tracking Content -->
+<div class="dashboard">
+    <div class="container">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1>Delivery in Progress - Order #{{ order.id }}</h1>
+                    <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                        {{ order.name }}
+                    </p>
+                </div>
+                <span class="status-badge-large">
+                    🚚 Dispatched
+                </span>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div style="margin-bottom: 2rem;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                {% if message.tags == 'error' %}❌{% else %}✅{% endif %}
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- GPS Control -->
+        <div class="card"
+            style="margin-bottom: 2rem; background: rgba(102, 126, 234, 0.1); border-color: rgba(102, 126, 234, 0.3);">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="margin-bottom: 0.5rem;">GPS Location Sharing</h3>
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 0.875rem;">
+                        Click "Start Sharing" to send your live location to the customer
+                    </p>
+                    <p id="gps-status" style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.875rem;">
+                        Status: Inactive
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button id="start-gps" class="btn btn-primary gps-button" onclick="startGPSSharing()">
+                        📍 Start Sharing
+                    </button>
+                    <button id="stop-gps" class="btn btn-secondary" style="display: none;" onclick="stopGPSSharing()">
+                        ⏹️ Stop
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Delivery Route</h3>
+            <div id="delivery-map"></div>
+        </div>
+
+        <!-- Order Details -->
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card">
+                <h4 style="margin-bottom: 1rem;">📍 Pickup Location</h4>
+                <p style="color: var(--text-secondary);">
+                    {% if order.pickup_address %}
+                    {{ order.pickup_address }}
+                    {% else %}
+                    Not specified
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="card">
+                <h4 style="margin-bottom: 1rem;">🎯 Delivery Location</h4>
+                <p style="color: var(--text-secondary);">
+                    {% if order.delivery_address %}
+                    {{ order.delivery_address }}
+                    {% else %}
+                    Not specified
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Complete Delivery Button -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Ready to complete this delivery?</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                Make sure the package has been delivered before marking as complete
+            </p>
+            <a href="{% url 'complete_delivery' order.id %}" class="btn btn-primary"
+                style="font-size: 1.125rem; padding: 1rem 2rem;"
+                onclick="return confirm('Have you delivered the package? This action cannot be undone.')">
+                ✅ Mark as Delivered
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-- Footer -->
+<footer
+    style="border-top: 1px solid var(--border-color); padding: 2rem 0; margin-top: 4rem; text-align: center; color: var(--text-muted);">
+    <div class="container">
+        <p>&copy; 2025 TrackFlow. All rights reserved.</p>
+    </div>
+</footer>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const orderId = {{ order.id }};
+    let deliveryMap;
+    let pickupMarker, deliveryMarker, currentMarker;
+    let routeLine;
+    let gpsInterval;
+    let isSharing = false;
+
+    // Initialize Map
+    function initMap() {
+        deliveryMap = L.map('delivery-map').setView([51.505, -0.09], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(deliveryMap);
+
+        const pickupLat = {{ order.pickup_latitude|default:"null"}};
+    const pickupLng = {{ order.pickup_longitude|default:"null" }};
+    const deliveryLat = {{ order.delivery_latitude|default:"null" }};
+    const deliveryLng = {{ order.delivery_longitude|default:"null" }};
+
+    const markers = [];
+
+    // Add Pickup Marker
+    if (pickupLat && pickupLng) {
+        const pickupIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        pickupMarker = L.marker([pickupLat, pickupLng], { icon: pickupIcon }).addTo(deliveryMap);
+        pickupMarker.bindPopup('<b>📍 Pickup Location</b>');
+        markers.push([pickupLat, pickupLng]);
+    }
+
+    // Add Delivery Marker
+    if (deliveryLat && deliveryLng) {
+        const deliveryIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        deliveryMarker = L.marker([deliveryLat, deliveryLng], { icon: deliveryIcon }).addTo(deliveryMap);
+        deliveryMarker.bindPopup('<b>🎯 Delivery Location</b>');
+        markers.push([deliveryLat, deliveryLng]);
+    }
+
+    // Fit map to show all markers
+    if (markers.length > 0) {
+        const bounds = L.latLngBounds(markers);
+        deliveryMap.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    // Try to get user's current location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            updateCurrentLocation(lat, lng);
+        });
+    }
+    }
+
+    function updateCurrentLocation(lat, lng) {
+        if (currentMarker) {
+            currentMarker.setLatLng([lat, lng]);
+        } else {
+            const currentIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            currentMarker = L.marker([lat, lng], { icon: currentIcon }).addTo(deliveryMap);
+            currentMarker.bindPopup('<b>🚚 Your Current Location</b>');
+            deliveryMap.setView([lat, lng], 15);
+        }
+
+        // Update route line
+        updateRouteLine(lat, lng);
+    }
+
+    function updateRouteLine(currentLat, currentLng) {
+        const pickupLat = {{ order.pickup_latitude|default:"null"}};
+    const pickupLng = {{ order.pickup_longitude|default:"null" }};
+    const deliveryLat = {{ order.delivery_latitude|default:"null" }};
+    const deliveryLng = {{ order.delivery_longitude|default:"null" }};
+
+    if (routeLine) {
+        deliveryMap.removeLayer(routeLine);
+    }
+
+    const routePoints = [];
+    if (pickupLat && pickupLng) {
+        routePoints.push([pickupLat, pickupLng]);
+    }
+    routePoints.push([currentLat, currentLng]);
+    if (deliveryLat && deliveryLng) {
+        routePoints.push([deliveryLat, deliveryLng]);
+    }
+
+    if (routePoints.length > 1) {
+        routeLine = L.polyline(routePoints, {
+            color: '#667eea',
+            weight: 3,
+            opacity: 0.7,
+            dashArray: '10, 10'
+        }).addTo(deliveryMap);
+    }
+    }
+
+    // GPS Sharing Functions
+    function startGPSSharing() {
+        if (!navigator.geolocation) {
+            alert('GPS not supported by your browser');
+            return;
+        }
+
+        isSharing = true;
+        document.getElementById('start-gps').style.display = 'none';
+        document.getElementById('stop-gps').style.display = 'block';
+        document.getElementById('start-gps').classList.add('active');
+        document.getElementById('gps-status').textContent = 'Status: Sharing Location...';
+        document.getElementById('gps-status').style.color = 'var(--success)';
+
+        // Send location immediately
+        sendCurrentLocation();
+
+        // Then send every 30 seconds
+        gpsInterval = setInterval(sendCurrentLocation, 30000);
+    }
+
+    function stopGPSSharing() {
+        isSharing = false;
+        clearInterval(gpsInterval);
+        document.getElementById('start-gps').style.display = 'block';
+        document.getElementById('stop-gps').style.display = 'none';
+        document.getElementById('start-gps').classList.remove('active');
+        document.getElementById('gps-status').textContent = 'Status: Inactive';
+        document.getElementById('gps-status').style.color = 'var(--text-muted)';
+    }
+
+    function sendCurrentLocation() {
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // Update map
+                updateCurrentLocation(lat, lng);
+
+                // Send to server
+                fetch(`/api/update-location/${orderId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lng,
+                        notes: 'Dispatch rider location update'
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const timestamp = new Date().toLocaleTimeString();
+                            document.getElementById('gps-status').textContent = `Status: Last update at ${timestamp}`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating location:', error);
+                    });
+            },
+            function (error) {
+                console.error('GPS error:', error);
+                alert('Unable to get your location. Please enable GPS.');
+            }
+        );
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        initMap();
+    });
+</script>
+{% endblock %}

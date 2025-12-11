@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - TrackFlow{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Header -->
+        <div class="auth-header">
+            <a href="{% url 'home' %}" class="navbar-brand" style="text-decoration: none; font-size: 2rem;">📦
+                TrackFlow</a>
+            <h2 class="auth-title">Welcome Back</h2>
+            <p class="auth-subtitle">Login to track your orders</p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+            {% if message.tags == 'error' %}❌{% else %}✅{% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Login Form -->
+        <form method="POST" class="auth-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username"
+                    required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-input"
+                    placeholder="Enter your password" required autocomplete="current-password">
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="remember" style="width: auto;">
+                    <span style="font-size: 0.875rem; color: var(--text-secondary);">Remember me</span>
+                </label>
+                <a href="#" style="font-size: 0.875rem; color: var(--primary); text-decoration: none;">
+                    Forgot password?
+                </a>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                🔐 Login to Dashboard
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="{% url 'register' %}">Create one now</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- Decorative Elements -->
+<style>
+    .auth-container::before {
+        content: '';
+        position: absolute;
+        top: 20%;
+        left: 10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(60px);
+        animation: float 6s ease-in-out infinite;
+        z-index: -1;
+    }
+
+    .auth-container::after {
+        content: '';
+        position: absolute;
+        bottom: 20%;
+        right: 10%;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(118, 75, 162, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(60px);
+        animation: float 8s ease-in-out infinite reverse;
+        z-index: -1;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0) scale(1);
+        }
+
+        50% {
+            transform: translateY(-20px) scale(1.1);
+        }
+    }
+</style>
+{% endblock %}
